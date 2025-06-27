@@ -9,10 +9,15 @@ import SwiftUI
 
 @main
 struct swiftui_tutorialApp: App {
+    init() {
+         let appearance = UITabBarItem.appearance()
+         let attributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 16, weight: .bold)]
+         appearance.setTitleTextAttributes(attributes, for: .normal)
+     }
     var body: some Scene {
         WindowGroup {
             ContentView()
-            TextEditorView()
-        }
+         
+        }.modelContainer(for: LocalProduct.self)
     }
 }
