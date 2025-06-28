@@ -14,106 +14,32 @@ struct ContentView: View {
     @Environment(\.modelContext) private var context
     @Query var savedProducts: [LocalProduct]
     @State var path = NavigationPath()
-    
+
     var body: some View {
-    
-        ZStack {
-            BackgroundGradient().frame(width: .infinity, height: .infinity)
-            // Gradient background
-            
-            
-            
-            NavigationStack {
+        NavigationStack(path: $path) {
+           
+                Spacer()
+
                 TabView(selection: $selectedTab) {
-                    // Home Tab
-                    VStack(spacing: 0) {
-                        if viewModel.isLoading {
-                            VStack {
-                               
-                                ProgressView()
-                                    .progressViewStyle(.circular)
-                                    .scaleEffect(1.5)
-                                    .padding()
-                                Text("Fetching Products...")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                        } else if let error = viewModel.errorMessage {
-                            Text("Error: \(error)")
-                                .font(.headline)
-                                .foregroundColor(.red)
-                                .padding()
-                        } else {
-                            ScrollView {
-                                LazyVStack(spacing: 12) {
-                                    ForEach(viewModel.products) { product in
-                                        NavigationLink {
-                                            ProductDetailView(product: product)
-                                        } label: {
-                                            ProductCardView(product: product, context: context)
-                                        }
-                                        .buttonStyle(PlainButtonStyle())
-                                    }.padding(.vertical)
-                                }.padding(.horizontal)
-                              
-                            }
+                  
+                    HomeTabView(viewModel: viewModel, context: context)
+                        .tabItem {
+                            Label("Home", systemImage: "house")
                         }
-                    }
-                    .task {
-                        await viewModel.getProducts()
-                    }
-                    .tabItem {
-                        Label("Home", systemImage: "house")
-                    }
-                    .tag(0)
-                    
-                    // Saved Products Tab
-                    VStack(spacing: 0) {
-                        if savedProducts.isEmpty {
-                       
-                            Text("No saved products.")
-                                .font(.headline)
-                                .foregroundColor(.secondary)
-                                .padding()
-                        } else {
-                            ScrollView {
-                                LazyVStack(spacing: 12) {
-                                    ForEach(savedProducts) { product in
-                                        SavedProductCardView(product: product,context:  context)
-                                            .padding(.horizontal)
-                                    }
-                                }
-                                .padding(.vertical)
-                            }
+                        .tag(0)
+
+               
+                    SavedTabView(savedProducts: savedProducts, context: context)
+                        .tabItem {
+                            Label("Saved", systemImage: "bookmark.fill")
                         }
-                    }
-                    .tabItem {
-                        Label("Saved", systemImage: "bookmark.fill")
-                    }
-                    .tag(1)
-                    
-                    // Placeholder Sun Dust Tab
-                    VStack {
-                        Image(systemName: "sun.dust")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 100, height: 100)
-                            .foregroundColor(.orange)
-                        Text("Sun Dust")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
-                    }
-                    .tabItem {
-                        Label("Sun Dust", systemImage: "sun.dust")
-                    }
-                    .tag(2)
+                        .tag(1)
                 }
-                .navigationBarBackButtonHidden(true)
+                .navigationTitle(Text("Products").bold().font(.largeTitle)).bold()
+                .navigationBarTitleDisplayMode(.inline).bold()
                 .accentColor(.orange)
-              
             }
-        }
+        
     }
 }
 
@@ -128,7 +54,7 @@ struct ProductCardView: View {
             AsyncImage(url: URL(string: product.image ?? "")) { image in
                 image
                     .resizable()
-                    .scaledToFit()
+                    .scaledToFit().foregroundStyle(.tint)
                   
               
             } placeholder: {
@@ -205,20 +131,7 @@ struct SavedProductCardView: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 
-                
-                Button(action: {
-                    
-                    context.delete(product)
-                    
-                }) {
-                    Text("Remove Saved")
-                        
-                      
-                }  .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                  
-                    .foregroundColor(.white)
-                    .cornerRadius(20)
+            
             }
             .padding(.vertical, 8)
             
@@ -276,11 +189,11 @@ class ProductViewModel: ObservableObject {
         }
 
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            let (data, response) = try await URLSession.shared.data(from: url)
             let decoded = try JSONDecoder().decode(ProductModel.self, from: data)
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [self] in
                 self.products = decoded.products
-                self.isLoading = false
+                isLoading = false
             }
         } catch {
             DispatchQueue.main.async {
@@ -346,15 +259,128 @@ struct ProductDetailView: View {
                     .font(.headline)
                     .foregroundColor(.secondary)
 
-                Text(product.description ?? "No description available.")
+                Text(product.description ?? "No description available.").padding(.all,20)
                     .font(.body)
-                    .padding(.top).frame(width : 400, height :200,alignment: .center)
+                    .padding(.top)
 
                 Spacer()
             }
-            .padding()
+            .padding(.horizontal,30)
         }
         .navigationTitle("Product Detail")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+struct HomeTabView: View {
+    @ObservedObject var viewModel: ProductViewModel
+    let context: ModelContext
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if viewModel.isLoading {
+                VStack {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                        .padding()
+                    Text("Fetching Products...")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            } else if let error = viewModel.errorMessage {
+                Text("Error: \(error)")
+                    .foregroundColor(.red)
+                    .padding()
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(viewModel.products) { product in
+                            NavigationLink {
+                                ProductDetailView(product: product)
+                            } label: {
+                                ProductCardView(product: product, context: context)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                        .padding(.vertical)
+                    }
+                    .padding(.horizontal)
+                }
+            }
+        }
+        .task {
+            await viewModel.getProducts()
+        }
+    }
+}
+struct SavedTabView: View {
+    let savedProducts: [LocalProduct]
+    let context: ModelContext
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if savedProducts.isEmpty {
+                Text("No saved products.")
+                    .foregroundColor(.secondary)
+                    .padding()
+            } else {
+                   List {
+                        ForEach(savedProducts) { product in
+                            SavedProductCardView(product: product, context: context)
+                                
+                        }.onDelete(perform: { indexset in
+                            self.deletezProduct(at: indexset)
+                            
+                        })
+                    }
+                    
+                }
+            }
+        }
+    
+    
+    
+    func deletezProduct(at offets : IndexSet) {
+        for offset in offets {
+            let productToDelete = savedProducts[offset]
+            context.delete(productToDelete)
+        }
+    }
+    
+}
+
+
+struct DelayedSplashView: View {
+    @State private var isReady = false
+
+    var body: some View {
+        Group {
+            if isReady {
+                ContentView()
+            } else {
+                ZStack {
+                    Color.black.ignoresSafeArea()
+                    VStack (spacing: 20){
+                        Image("resized-image")
+                            .resizable()
+                            .scaledToFit()
+                            .cornerRadius(20)
+                            .frame(width: 140, height: 140).background(.black).foregroundColor(.white)
+                        
+                        
+                        
+                        
+                        Text("Dhruvil Patel").bold().foregroundColor(.orange).font(.system(size: 20, weight: .bold, design: .default))
+                    }
+                }
+                .onAppear {
+                    // Add a short delay to show splash (e.g. 1.5s)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        withAnimation {
+                            isReady = true
+                        }
+                    }
+                }
+            }
+        }
     }
 }

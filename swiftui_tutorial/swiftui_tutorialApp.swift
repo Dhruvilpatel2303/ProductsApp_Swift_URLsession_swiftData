@@ -16,7 +16,7 @@ struct swiftui_tutorialApp: App {
      }
     var body: some Scene {
         WindowGroup {
-            ContentView()
+         DelayedSplashView()
          
         }.modelContainer(for: LocalProduct.self)
     }
