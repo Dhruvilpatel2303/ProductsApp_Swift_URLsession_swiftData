@@ -9,6 +9,7 @@ import SwiftUI
 
 @main
 struct swiftui_tutorialApp: App {
+    @StateObject var viewModel = ProductViewModel()
     init() {
          let appearance = UITabBarItem.appearance()
          let attributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 16, weight: .bold)]
@@ -16,7 +17,7 @@ struct swiftui_tutorialApp: App {
      }
     var body: some Scene {
         WindowGroup {
-         DelayedSplashView()
+            DelayedSplashView()
          
         }.modelContainer(for: LocalProduct.self)
     }

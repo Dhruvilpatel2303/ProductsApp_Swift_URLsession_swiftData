@@ -35,7 +35,7 @@ struct ContentView: View {
                         }
                         .tag(1)
                 }
-                .navigationTitle(Text("Products").bold().font(.largeTitle)).bold()
+//                .navigationTitle(Text("Products").bold().font(.largeTitle)).bold()
                 .navigationBarTitleDisplayMode(.inline).bold()
                 .accentColor(.orange)
             }
@@ -189,7 +189,7 @@ class ProductViewModel: ObservableObject {
         }
 
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            let (data, _) = try await URLSession.shared.data(from: url)
             let decoded = try JSONDecoder().decode(ProductModel.self, from: data)
             DispatchQueue.main.async { [self] in
                 self.products = decoded.products
@@ -291,13 +291,18 @@ struct HomeTabView: View {
                     .foregroundColor(.red)
                     .padding()
             } else {
-                ScrollView {
+                ScrollView(.vertical) {
                     LazyVStack(spacing: 12) {
                         ForEach(viewModel.products) { product in
                             NavigationLink {
                                 ProductDetailView(product: product)
                             } label: {
                                 ProductCardView(product: product, context: context)
+                                 
+                                   
+                                   
+                              
+                                
                             }
                             .buttonStyle(PlainButtonStyle())
                         }
@@ -306,10 +311,10 @@ struct HomeTabView: View {
                     .padding(.horizontal)
                 }
             }
-        }
-        .task {
+        }.task {
             await viewModel.getProducts()
         }
+        
     }
 }
 struct SavedTabView: View {
@@ -351,6 +356,12 @@ struct SavedTabView: View {
 
 struct DelayedSplashView: View {
     @State private var isReady = false
+    @State private var animate = false
+    @State private var backgroundColor = Color.black
+    @State private var rotationAngle: Angle = .degrees(360)
+    @State private var pulseScale: CGFloat = 2.0
+    @StateObject var viewModel = ProductViewModel()
+
 
     var body: some View {
         Group {
@@ -358,29 +369,120 @@ struct DelayedSplashView: View {
                 ContentView()
             } else {
                 ZStack {
-                    Color.black.ignoresSafeArea()
-                    VStack (spacing: 20){
-                        Image("resized-image")
+                    Color.black
+                    VStack(spacing: 50) {
+                        Image("resized-image (1)")
                             .resizable()
                             .scaledToFit()
-                            .cornerRadius(20)
-                            .frame(width: 140, height: 140).background(.black).foregroundColor(.white)
+                            .cornerRadius(50)
+                            .frame(width: 140, height: 140)
+                            .scaleEffect(animate ? 1.0 : 0.5)
+                            .opacity(animate ? 1.0 : 0.0)
+                            .rotationEffect(rotationAngle)
+                            .scaleEffect(pulseScale)
+                            .animation(
+                                .spring(duration: 1.2).delay(0.2),
+                                value: animate
+                            )
+                            .animation(
+                                .spring(response: 0.5, dampingFraction: 0.7).repeatForever(autoreverses: true),
+                                value: pulseScale
+                            )
+                            .animation(
+                                .easeInOut(duration: 1.5).repeatForever(autoreverses: true),
+                                value: rotationAngle
+                            )
                         
+                        Spacer().frame(height: 20)
+
+                        Text("Dhruvil Patel")
+                            .bold()
+                            .foregroundColor(.orange)
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .opacity(animate ? 1 : 0)
+                            .offset(y: animate ? 0 : 30)
+                            .scaleEffect(animate ? 1.0 : 0.8)
+                            .animation(
+                                .easeOut(duration: 0.8).delay(0.6),
+                                value: animate
+                            )
                         
-                        
-                        
-                        Text("Dhruvil Patel").bold().foregroundColor(.orange).font(.system(size: 20, weight: .bold, design: .default))
+
+                        Link(destination: URL(string: "https://github.com/Dhruvilpatel2303")!) {
+                            Image(systemName: "link")
+                                .frame(width: 50, height: 50)
+                                
+                                .foregroundColor(.white)
+                                
+                                .cornerRadius(25)
+                                .scaleEffect(animate ? 1.5 : 0.5)
+                                .rotation3DEffect(
+                                    .degrees(animate ? 0 : 180),
+                                    axis: (x: 0, y: 1, z: 0),
+                                    
+                                )
+                        }
+                        .opacity(animate ? 1 : 0)
+                        .offset(y: animate ? 0 : 30)
+                        .animation(
+                            .spring(response: 0.6, dampingFraction: 0.8).delay(1.0),
+                            value: animate
+                        )
                     }
                 }
                 .onAppear {
-                    // Add a short delay to show splash (e.g. 1.5s)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                        withAnimation {
+                    // Trigger initial animations
+                    withAnimation {
+                        animate = true
+                        backgroundColor = .blue
+                    }
+                    // Pulse animation for image
+                    withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                        pulseScale = 1.1
+                    }
+                    // Rotation animation for image
+                    withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                        rotationAngle = .degrees(0)
+                    }
+                    // Transition to ContentView after delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                             isReady = true
                         }
                     }
+                }.task {
+                    await viewModel.getProducts()
                 }
             }
         }
     }
 }
+//#Preview("Position-based Hue & Scale") {
+//    ScrollView(.vertical) {
+//        VStack {
+//            ForEach(0 ..< 20) { _ in
+//                RoundedRectangle(cornerRadius: 24)
+//                    .fill(.purple)
+//                    .frame(height: 100)
+//                    .visualEffect { content, proxy in
+//                        let frame = proxy.frame(in: .scrollView(axis: .vertical))
+//                        let parentBounds = proxy
+//                            .bounds(of: .scrollView(axis: .vertical)) ??
+//                            .infinite
+//
+//                        // The distance this view extends past the bottom edge
+//                        // of the scroll view.
+//                        let distance = min(0, frame.minY)
+//
+//                        return content
+//                            .hueRotation(.degrees(frame.origin.y / 10))
+//                            .scaleEffect(1 + distance / 700)
+//                            .offset(y: -distance / 1.25)
+//                            .brightness(-distance / 400)
+//                            .blur(radius: -distance / 50)
+//                    }
+//            }
+//        }
+//        .padding()
+//    }
+//}
